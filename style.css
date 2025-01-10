@@ -18,10 +18,10 @@ body {
   border-radius: 5px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   background-color: #fff;
-  text-align: center; 
+  text-align: center;
 }
 
-h1 {
+h1, h2 {
   margin-bottom: 15px;
 }
 
@@ -30,7 +30,7 @@ p {
 }
 
 button {
-  background-color: #007bff;
+  background-color: #007bff; 
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -43,6 +43,21 @@ button:hover {
   background-color: #0062cc;
 }
 
+.account-info {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.balance-card {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+/* Index Page Styling */
 #startScreen {
   text-align: center;
 }
@@ -53,22 +68,22 @@ button:hover {
   margin-bottom: 20px;
 }
 
-/* For pages with account information */
-.account-info {
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  padding: 15px;
-  margin-bottom: 20px;
+/* Navigation Page Styling */
+#navigationScreen {
+  text-align: center;
 }
 
-/* For pages with buttons */
-.button-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px; 
+/* Account Management Page Styling */
+#accountManagement {
+  text-align: center;
 }
 
-/* Media Queries (optional) */
+/* Trading Page Styling */
+#hustleScreen {
+  text-align: center;
+}
+
+/* Media Query for Smaller Screens */
 @media screen and (max-width: 768px) { 
   .container {
     max-width: 90%;
