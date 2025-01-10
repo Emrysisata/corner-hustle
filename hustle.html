@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corner Hustle - Trading</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Trading Dashboard</h1>
+
+        <div class="account-info"> 
+            <h2>App's Account</h2>
+            <p>Public Key: <span id="appAccountPublicKey">NA</span></p>
+            <p>SOL: <span id="appAccountSolBalance">0 SOL</span></p>
+            <p>USDC: <span id="appAccountUsdcBalance">0 USDC</span></p>
+        </div>
+
+        <div class="balance-card">
+            <h2>Trading Session</h2>
+            <p>Start USDC Balance: <span id="startUsdcBalance">0 USDC</span></p>
+            <p>Current USDC Balance: <span id="currentUsdcBalance">0 USDC</span></p>
+            <p>USDC Difference: <span id="usdcDifference">0 USDC</span></p>
+        </div>
+
+        <div class="balance-card">
+            <h2>Market Prices</h2>
+            <p>Market 1: 1 USDC = <span id="market1Price">0.0</span> SOL</p>
+            <p>Market 2: 1 USDC = <span id="market2Price">0.0</span> SOL</p>
+        </div>
+
+        <button id="startTradingButton">Start Trading</button>
+        <button id="stopTradingButton" disabled>Stop Trading</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
