@@ -2,17 +2,189 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corner Hustle</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Arbitrage Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .balance-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .activity-log {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+
+        button:disabled {
+            background: #6c757d;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
-    <div id="startScreen">
-        <img src="images/app-icon.jpg" alt="Corner Hustle Logo" id="appIcon">
-        <h1>Corner Hustle</h1>
-        <p>Your ultimate trading companion!</p>
-        <button onclick="startApp()">Start App</button>
+    <div class="dashboard">
+        <div class="card">
+            <h2>Trading Dashboard</h2>
+            <div class="balance-section">
+                <div>
+                    <div>Available Balance</div>
+                    <div id="balance">0.00 USDC</div>
+                </div>
+            </div>
+            <div>
+                <input type="number" id="depositAmount" placeholder="Enter deposit amount">
+                <button onclick="handleDeposit()">Deposit</button>
+            </div>
+            <div>
+                <button id="startBtn" onclick="startTrading()">Start Trading</button>
+                <button id="stopBtn" onclick="stopTrading()" disabled>Stop Trading</button>
+            </div>
+            <button onclick="withdrawFunds()">Withdraw All Funds</button>
+        </div>
+
+        <div class="card">
+            <h2>Activity Log</h2>
+            <div class="activity-log" id="activityLog"></div>
+        </div>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        let balance = 0;
+        let profit = 0;
+        let isTrading = false;
+        let tradingInterval;
+        const activities = [];
+
+        function updateDisplay() {
+            document.getElementById('balance').textContent = 
+                `${(balance + profit).toFixed(2)} USDC (Profit: ${profit.toFixed(2)})`;
+        }
+
+        function addActivity(type, description, details) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <div style="color: ${getColor(type)}">${description}</div>
+                <div style="font-size: 0.8em; color: #666">${details}</div>
+                <div style="font-size: 0.7em; color: #999">${new Date().toLocaleTimeString()}</div>
+            `;
+            document.getElementById('activityLog').prepend(entry);
+        }
+
+        function getColor(type) {
+            const colors = {
+                deposit: '#2ecc71',
+                trade: '#3498db',
+                profit: '#27ae60',
+                withdrawal: '#e67e22',
+                system: '#95a5a6'
+            };
+            return colors[type] || '#95a5a6';
+        }
+
+        function simulateTrade() {
+            const actions = [
+                {
+                    type: 'trade',
+                    description: 'Arbitrage Opportunity Detected',
+                    details: 'USDC/SOL: Exchange A $56.78 vs Exchange B $56.92'
+                },
+                {
+                    type: 'profit',
+                    description: 'Trade Executed',
+                    details: 'Profit: +0.15 USDC'
+                }
+            ];
+            
+            const action = actions[Math.floor(Math.random() * actions.length)];
+            addActivity(action.type, action.description, action.details);
+            
+            if (action.type === 'profit') {
+                profit += Math.random() * 0.5;
+                updateDisplay();
+            }
+        }
+
+        function handleDeposit() {
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            if (amount > 0) {
+                balance += amount;
+                updateDisplay();
+                addActivity('deposit', 'Deposit Successful', `Added ${amount.toFixed(2)} USDC`);
+                document.getElementById('depositAmount').value = '';
+            }
+        }
+
+        function startTrading() {
+            isTrading = true;
+            tradingInterval = setInterval(simulateTrade, 3000);
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            addActivity('system', 'Trading Started', 'Scanning for opportunities...');
+        }
+
+        function stopTrading() {
+            isTrading = false;
+            clearInterval(tradingInterval);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            addActivity('system', 'Trading Stopped', `Current profit: ${profit.toFixed(2)} USDC`);
+        }
+
+        function withdrawFunds() {
+            const total = balance + profit;
+            balance = 0;
+            profit = 0;
+            updateDisplay();
+            addActivity('withdrawal', 'Withdrawal Processed', `Withdrew ${total.toFixed(2)} USDC`);
+        }
+    </script>
 </body>
 </html>
