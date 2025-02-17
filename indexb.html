@@ -95,7 +95,50 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.1/lib/index.iife.min.js"></script>
+
     <script>
+
+        // Function to generate a new Solana keypair
+        function generateSolanaKeypair() {
+          const keypair = solanaWeb3.Keypair.generate();
+          return keypair;
+        }
+
+        // Function to save the keypair to localStorage
+        function saveKeypairToLocalStorage(keypair) {
+          const secretKey = Array.from(keypair.secretKey); // Convert Uint8Array to array
+          localStorage.setItem('gameOn', JSON.stringify(secretKey));
+        }
+
+        // Function to load the keypair from localStorage
+        function loadKeypairFromLocalStorage() {
+          const storedData = localStorage.getItem('gameOn');
+          if (storedData) {
+            const secretKey = new Uint8Array(JSON.parse(storedData));
+            return solanaWeb3.Keypair.fromSecretKey(secretKey);
+          }
+          return null;
+        }
+
+        // Main logicForKeypair
+        function checkAndHandleKeypair() {
+          const outputElement = document.getElementById('output');
+          let keypair = loadKeypairFromLocalStorage();
+
+          if (keypair) {
+            // If keypair exists, display the public key
+            outputElement.textContent = `Existing Solana Keypair Public Key: ${keypair.publicKey.toString()}`;
+          } else {
+            // If keypair doesn't exist, generate a new one and save it
+            keypair = generateSolanaKeypair();
+            saveKeypairToLocalStorage(keypair);
+            outputElement.textContent = `New Solana Keypair Generated. Public Key: ${keypair.publicKey.toString()}`;
+          }
+        }
+
+
+        
         let balance = 0;
         let profit = 0;
         let isTrading = false;
