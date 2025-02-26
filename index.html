@@ -2,17 +2,438 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corner Hustle</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Solana Arbitrage Trader</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --background: #f8f9fa;
+            --text: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-info .public-key {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 5px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wallet-info button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            background: var(--secondary);
+            color: white;
+            cursor: pointer;
+        }
+
+        .balance-display {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .dex-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .dex-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .dex-card h3 {
+            margin-top: 0;
+        }
+
+        .price-row {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .activity-log {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-    <div id="startScreen">
-        <img src="images/app-icon.jpg" alt="Corner Hustle Logo" id="appIcon">
-        <h1>Corner Hustle</h1>
-        <p>Your ultimate trading companion!</p>
-        <button onclick="startApp()">Start App</button>
+    <div class="container">
+        <div class="header">
+            <h1>Solana Arbitrage Trader</h1>
+            <div class="wallet-info">
+                <div class="public-key" id="publicKeyDisplay">Loading wallet...</div>
+                <button onclick="copyPublicKey()">Copy Address</button>
+            </div>
+            <div class="balance-display">
+                <strong>SOL Balance:</strong> <span id="solBalance">Loading...</span>
+            </div>
+            <div>
+                <button id="startBtn" class="btn-primary" onclick="startArbitrage()">Start Trading</button>
+                <button id="stopBtn" class="btn-danger" onclick="stopArbitrage()" disabled>Stop Trading</button>
+            </div>
+        </div>
+
+        <div class="dex-grid" id="dexContainer"></div>
+
+        <div class="activity-log" id="activityLog"></div>
     </div>
-    <script src="script.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.1/lib/index.iife.min.js"></script>
+    <script>
+        // Create a connection to the Solana cluster
+        const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
+
+        // Previous constants and configuration
+        const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey(
+            'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        );
+        
+        // Modified getTokenBalance function
+        async function getTokenBalance(mintAddress) {
+            try {
+                const accounts = await connection.getTokenAccountsByOwner(
+                    walletKeypair.publicKey,
+                    { mint: new solanaWeb3.PublicKey(mintAddress) },
+                    { commitment: 'confirmed' }
+                );
+
+                if (accounts.value.length === 0) return 0;
+                
+                const accountInfo = solanaWeb3.AccountLayout.decode(accounts.value[0].account.data);
+                const rawAmount = new solanaWeb3.u64(accountInfo.amount).toString();
+                
+                // USDC has 6 decimals
+                return parseInt(rawAmount) / Math.pow(10, 6);
+            } catch (error) {
+                console.error('Error fetching token balance:', error);
+                return 0;
+            }
+        }
+
+        // Updated balance update system
+        async function updateBalances() {
+            try {
+                // Update SOL balance
+                const solBalance = await connection.getBalance(walletKeypair.publicKey);
+                document.getElementById('solBalance').textContent = 
+                    (solBalance / solanaWeb3.LAMPORTS_PER_SOL).toFixed(4);
+
+                // Update USDC balance
+                const usdcBalance = await getTokenBalance('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+                document.getElementById('usdcBalance').textContent = usdcBalance.toFixed(2);
+
+                // Disable trading if SOL balance is 0
+                document.getElementById('startBtn').disabled = solBalance === 0;
+            } catch (error) {
+                console.error('Balance update error:', error);
+                logActivity('error', 'Balance update failed', error.message);
+            }
+        }
+
+        // Separate balance update interval
+        let balanceUpdateInterval;
+        function startBalanceUpdates() {
+            updateBalances(); // Initial update
+            balanceUpdateInterval = setInterval(async () => {
+                await updateBalances();
+                logActivity('system', 'Scheduled balance update completed');
+            }, 120000); // 2 minutes
+        }
+
+        // Modified startArbitrage function
+        async function startArbitrage() {
+            // Check balance before starting
+            const currentBalance = await connection.getBalance(walletKeypair.publicKey);
+            if (currentBalance === 0) {
+                logActivity('error', 'Cannot start trading - 0 SOL balance');
+                return;
+            }
+
+            isTrading = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            logActivity('system', 'Arbitrage trading started');
+            fetchDexPrices();
+        }
+
+        // Initialize with proper balance updates
+        function initializeWallet() {
+            // Previous initialization logic
+            const storedKey = localStorage.getItem('arbitrageWallet');
+            if (storedKey) {
+                try {
+                    const keyArray = JSON.parse(storedKey);
+                    walletKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(keyArray));
+                } catch (error) {
+                    generateNewWallet();
+                }
+            } else {
+                generateNewWallet();
+            }
+            updateWalletDisplay();
+
+            startBalanceUpdates(); // Start the balance update cycle
+        }
+
+
+        // Keep the rest of the previous implementation
+        function generateNewWallet() {
+            walletKeypair = solanaWeb3.Keypair.generate();
+            localStorage.setItem('arbitrageWallet', JSON.stringify(Array.from(walletKeypair.secretKey)));
+            logActivity('system', 'New wallet generated');
+        }
+
+        // Update wallet display
+        function updateWalletDisplay() {
+            const publicKey = walletKeypair.publicKey.toString();
+            document.getElementById('publicKeyDisplay').textContent = 
+                `${publicKey.slice(0, 8)}...${publicKey.slice(-8)}`;
+        }
+
+        // Copy public key to clipboard
+        function copyPublicKey() {
+            navigator.clipboard.writeText(walletKeypair.publicKey.toString());
+            logActivity('system', 'Public key copied to clipboard');
+        }
+
+        // Start balance updates
+        function startBalanceUpdates() {
+            updateSolBalance();
+            balanceUpdateInterval = setInterval(updateSolBalance, BALANCE_UPDATE_INTERVAL);
+        }
+
+        // Fetch and update SOL balance
+        async function updateSolBalance() {
+            try {
+                const balance = await connection.getBalance(walletKeypair.publicKey);
+                const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
+                document.getElementById('solBalance').textContent = solBalance.toFixed(4);
+
+                // Disable trading if balance is 0
+                if (solBalance === 0) {
+                    document.getElementById('startBtn').disabled = true;
+                    logActivity('error', 'Insufficient SOL balance');
+                } else {
+                    document.getElementById('startBtn').disabled = false;
+                }
+            } catch (error) {
+                logActivity('error', 'Failed to fetch SOL balance', error.message);
+            }
+        }
+
+        // Start arbitrage trading
+        function startArbitrage() {
+            isTrading = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            logActivity('system', 'Arbitrage trading started');
+            fetchDexPrices();
+        }
+
+        // Stop arbitrage trading
+        function stopArbitrage() {
+            isTrading = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            logActivity('system', 'Arbitrage trading stopped');
+        }
+
+        // Fetch prices from DEXes
+        async function fetchDexPrices() {
+            if (!isTrading) return;
+
+            try {
+                const prices = await Promise.all(
+                    DEX_CONFIG.map(async dex => ({
+                        ...dex,
+                        buyPrice: await getDexPrice(dex.id, 'buy'),
+                        sellPrice: await getDexPrice(dex.id, 'sell')
+                    }))
+                );
+
+                renderDexPrices(prices);
+                analyzeArbitrage(prices);
+            } catch (error) {
+                logActivity('error', 'Failed to fetch DEX prices', error.message);
+            }
+
+            if (isTrading) {
+                setTimeout(fetchDexPrices, 10000); // Fetch prices every 10 seconds
+            }
+        }
+
+        // Get price from a specific DEX
+        async function getDexPrice(dexId, side) {
+            try {
+                const response = await fetch(
+                    `${JUPITER_API}/quote?` +
+                    `inputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&` +
+                    `outputMint=So11111111111111111111111111111111111111112&` +
+                    `amount=1000000&` +
+                    `slippage=1&` +
+                    `onlyDEXs=${dexId}`
+                );
+                const data = await response.json();
+                return side === 'buy' ? data.outAmount / 1e9 : 1 / (data.outAmount / 1e9);
+            } catch (error) {
+                logActivity('error', `Failed to fetch ${dexId} price`);
+                return null;
+            }
+        }
+
+        // Render DEX prices
+        function renderDexPrices(prices) {
+            const container = document.getElementById('dexContainer');
+            container.innerHTML = prices.map(dex => `
+                <div class="dex-card">
+                    <h3>${dex.name}</h3>
+                    <div class="price-row">
+                        <div>1 USDC = ${dex.buyPrice?.toFixed(6) || 'N/A'} SOL</div>
+                    </div>
+                    <div class="price-row">
+                        <div>1 SOL = ${dex.sellPrice?.toFixed(6) || 'N/A'} USDC</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Analyze arbitrage opportunities
+        function analyzeArbitrage(prices) {
+            const validPrices = prices.filter(p => p.buyPrice && p.sellPrice);
+            if (validPrices.length < 2) return;
+
+            let bestBuy = { dex: null, price: Infinity };
+            let bestSell = { dex: null, price: 0 };
+
+            validPrices.forEach(dex => {
+                if (dex.buyPrice < bestBuy.price) bestBuy = { dex: dex.name, price: dex.buyPrice };
+                if (dex.sellPrice > bestSell.price) bestSell = { dex: dex.name, price: dex.sellPrice };
+            });
+
+            const spread = bestSell.price - bestBuy.price;
+            if (spread > 0.005) { // 0.5% spread threshold
+                logActivity('trade', 'Arbitrage Opportunity', `
+                    Buy on ${bestBuy.dex} @ ${bestBuy.price.toFixed(6)} SOL/USDC<br>
+                    Sell on ${bestSell.dex} @ ${bestSell.price.toFixed(6)} SOL/USDC<br>
+                    Spread: ${(spread * 100).toFixed(2)}%
+                `);
+            }
+        }
+
+        // Log activity
+        function logActivity(type, title, details = '') {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <div style="color: ${getActivityColor(type)}">${title}</div>
+                ${details ? `<div style="font-size: 0.8em; color: #666">${details}</div>` : ''}
+                <div style="font-size: 0.7em; color: #999">${new Date().toLocaleTimeString()}</div>
+            `;
+            document.getElementById('activityLog').prepend(logEntry);
+        }
+
+        // Get activity color
+        function getActivityColor(type) {
+            const colors = {
+                system: '#95a5a6',
+                trade: '#3498db',
+                error: '#e74c3c',
+                success: '#27ae60'
+            };
+            return colors[type] || '#95a5a6';
+        }
+
+        // Initialize app
+        initializeWallet();
+    </script>
 </body>
 </html>
